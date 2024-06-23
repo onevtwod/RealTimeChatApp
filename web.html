@@ -1,0 +1,80 @@
+<!-- web.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Chat Example</title>
+</head>
+<body>
+  <input type="text" id="messageInput" placeholder="Type a message...">
+  <button onclick="sendMessage()">Send</button>
+  <ul id="messages"></ul>
+
+  <script>
+    let ws;
+
+    function connectWebSocket() {
+      ws = new WebSocket('ws://localhost:8080');
+
+      ws.onopen = function() {
+        console.log('Connected to WebSocket server');
+      };
+
+      ws.onmessage = function(event) {
+        if (typeof event.data === 'string') {
+            // Handle text message
+            console.log('Received message:', event.data);
+            const messages = document.getElementById('messages');
+            const li = document.createElement('li');
+            li.textContent = event.data;
+            messages.appendChild(li);
+        } else if (event.data instanceof Blob) {
+            // Handle Blob message
+            console.log('Received Blob:', event.data);
+
+            const reader = new FileReader();
+            reader.onload = function() {
+            const messages = document.getElementById('messages');
+            const li = document.createElement('li');
+            li.textContent = reader.result; // Assuming Blob data is text
+            messages.appendChild(li);
+            };
+
+            // Read Blob data as text
+            reader.readAsText(event.data);
+        } else {
+            console.error('Unsupported message format:', event.data);
+        }
+        };
+
+      ws.onclose = function(event) {
+        console.log('WebSocket closed:', event);
+        // Attempt to reconnect WebSocket after a short delay
+        setTimeout(connectWebSocket, 1000);
+      };
+
+      ws.onerror = function(error) {
+        console.error('WebSocket encountered error:', error);
+        // Handle WebSocket error here
+      };
+    }
+
+    // Initialize WebSocket connection
+    connectWebSocket();
+
+    function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const message = input.value.trim(); // Trim whitespace from input
+
+      if (message !== '' && ws.readyState === WebSocket.OPEN) {
+        ws.send(message); // Send message via WebSocket
+        input.value = ''; // Clear input field after sending
+      } else {
+        console.error('WebSocket is not open to send message.');
+      }
+    }
+  </script>
+</body>
+</html>
